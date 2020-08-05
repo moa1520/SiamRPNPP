@@ -1,2 +1,2 @@
-pretrained_model/
-data/
+pretrained_model/*
+data/*
