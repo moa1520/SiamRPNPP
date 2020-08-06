@@ -4,7 +4,7 @@ import numpy as np
 from glob import glob
 
 from model import ModelBuilder
-# from tracker import build_tracker
+from tracker import build_tracker
 
 
 def get_frames(video_name):
@@ -53,7 +53,7 @@ def main():
     model.eval().to(device)
 
     # build tracker
-    # tracker = build_tracker(model)
+    tracker = build_tracker(model)
 
     first_frame = True
     root = "data/bag.avi"
@@ -66,16 +66,16 @@ def main():
                 init_rect = cv2.selectROI(video_name, frame, False, False)
             except:
                 exit()
-            # tracker.init(frame, init_rect)
+            tracker.init(frame, init_rect)
             first_frame = False
-        # else:
-        #     outputs = tracker.track(frame)
-        #     bbox = list(map(int, outputs['bbox']))
-        #     cv2.rectangle(frame, (bbox[0], bbox[1]),
-        #                   (bbox[0]+bbox[2], bbox[1]+bbox[3]),
-        #                   (0, 255, 0), 3)
-        #     cv2.imshow(video_name, frame)
-        #     cv2.waitKey(40)
+        else:
+            outputs = tracker.track(frame)
+            bbox = list(map(int, outputs['bbox']))
+            cv2.rectangle(frame, (bbox[0], bbox[1]),
+                          (bbox[0]+bbox[2], bbox[1]+bbox[3]),
+                          (0, 255, 0), 3)
+            cv2.imshow(video_name, frame)
+            cv2.waitKey(40)
 
 
 if __name__ == "__main__":

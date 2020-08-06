@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from core.xcorr import xcorr_depthwise, xcorr_fast
+
 
 class RPN(nn.Module):
     def __init__(self):

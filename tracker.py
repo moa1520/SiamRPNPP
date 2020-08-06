@@ -1,13 +1,16 @@
 import numpy as np
 import torch.nn.functional as F
 
+from base_tracker import SiameseTracker
+from anchor import Anchors
+
 
 class SiamRPNTracker(SiameseTracker):
     def __init__(self, model):
         super(SiamRPNTracker, self).__init__()
-        self.score_size = (cfg.TRACK.INSTANCE_SIZE - cfg.TRACK.EXEMPLAR_SIZE) // \
-            cfg.ANCHOR.STRIDE + 1 + cfg.TRACK.BASE_SIZE
-        self.anchor_num = len(cfg.ANCHOR.RATIOS) * len(cfg.ANCHOR.SCALES)
+        self.score_size = (255 - 127) // \
+            8 + 1 + 8
+        self.anchor_num = len([0.33, 0.5, 1, 2, 3]) * len([8])
         hanning = np.hanning(self.score_size)
         window = np.outer(hanning, hanning)
         self.window = np.tile(window.flatten(), self.anchor_num)
@@ -16,9 +19,9 @@ class SiamRPNTracker(SiameseTracker):
         self.model.eval()
 
     def generate_anchor(self, score_size):
-        anchors = Anchors(cfg.ANCHOR.STRIDE,
-                          cfg.ANCHOR.RATIOS,
-                          cfg.ANCHOR.SCALES)
+        anchors = Anchors(8,
+                          [0.33, 0.5, 1, 2, 3],
+                          [8])
         anchor = anchors.anchors
         x1, y1, x2, y2 = anchor[:, 0], anchor[:, 1], anchor[:, 2], anchor[:, 3]
         anchor = np.stack([(x1+x2)*0.5, (y1+y2)*0.5, x2-x1, y2-y1], 1)
@@ -68,8 +71,8 @@ class SiamRPNTracker(SiameseTracker):
         self.size = np.array([bbox[2], bbox[3]])
 
         # calculate z crop size
-        w_z = self.size[0] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
-        h_z = self.size[1] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
+        w_z = self.size[0] + 0.5 * np.sum(self.size)
+        h_z = self.size[1] + 0.5 * np.sum(self.size)
         s_z = round(np.sqrt(w_z * h_z))
 
         # calculate channle average
@@ -77,7 +80,7 @@ class SiamRPNTracker(SiameseTracker):
 
         # get crop
         z_crop = self.get_subwindow(img, self.center_pos,
-                                    cfg.TRACK.EXEMPLAR_SIZE,
+                                    127,
                                     s_z, self.channel_average)
         self.model.template(z_crop)
 
@@ -88,13 +91,13 @@ class SiamRPNTracker(SiameseTracker):
         return:
             bbox(list):[x, y, width, height]
         """
-        w_z = self.size[0] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
-        h_z = self.size[1] + cfg.TRACK.CONTEXT_AMOUNT * np.sum(self.size)
+        w_z = self.size[0] + 0.5 * np.sum(self.size)
+        h_z = self.size[1] + 0.5 * np.sum(self.size)
         s_z = np.sqrt(w_z * h_z)
-        scale_z = cfg.TRACK.EXEMPLAR_SIZE / s_z
-        s_x = s_z * (cfg.TRACK.INSTANCE_SIZE / cfg.TRACK.EXEMPLAR_SIZE)
+        scale_z = 127 / s_z
+        s_x = s_z * (255 / 127)
         x_crop = self.get_subwindow(img, self.center_pos,
-                                    cfg.TRACK.INSTANCE_SIZE,
+                                    255,
                                     round(s_x), self.channel_average)
 
         outputs = self.model.track(x_crop)
@@ -116,16 +119,16 @@ class SiamRPNTracker(SiameseTracker):
         # aspect ratio penalty
         r_c = change((self.size[0]/self.size[1]) /
                      (pred_bbox[2, :]/pred_bbox[3, :]))
-        penalty = np.exp(-(r_c * s_c - 1) * cfg.TRACK.PENALTY_K)
+        penalty = np.exp(-(r_c * s_c - 1) * 0.04)
         pscore = penalty * score
 
         # window penalty
-        pscore = pscore * (1 - cfg.TRACK.WINDOW_INFLUENCE) + \
-            self.window * cfg.TRACK.WINDOW_INFLUENCE
+        pscore = pscore * (1 - 0.44) + \
+            self.window * 0.44
         best_idx = np.argmax(pscore)
 
         bbox = pred_bbox[:, best_idx] / scale_z
-        lr = penalty[best_idx] * score[best_idx] * cfg.TRACK.LR
+        lr = penalty[best_idx] * score[best_idx] * 0.4
 
         cx = bbox[0] + self.center_pos[0]
         cy = bbox[1] + self.center_pos[1]
