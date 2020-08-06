@@ -1,3 +1,6 @@
+import os
+import argparse
+
 import cv2
 import torch
 import numpy as np
@@ -5,6 +8,11 @@ from glob import glob
 
 from model import ModelBuilder
 from tracker import build_tracker
+
+parser = argparse.ArgumentParser(description="tracking demo")
+parser.add_argument('--video_name', default='', type=str,
+                    help='videos or image files')
+args = parser.parse_args()
 
 
 def get_frames(video_name):
@@ -56,7 +64,7 @@ def main():
     tracker = build_tracker(model)
 
     first_frame = True
-    root = "data/bag.avi"
+    root = args.video_name
     video_name = root.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
