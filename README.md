@@ -10,7 +10,7 @@
 
 ### Download models
 
-Download models in [PySOT Model Zoo](MODEL_ZOO.md) and put the model.pth in the correct directory in experiments
+Download models in [PySOT Model Zoo](MODEL_ZOO.md) and put the model.pth in the correct directory in pretrained_model
 
 ### Test demo
 
