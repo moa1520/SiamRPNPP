@@ -8,6 +8,7 @@ from glob import glob
 
 from model import ModelBuilder
 from tracker import build_tracker
+from data_loader import dataLoader
 
 parser = argparse.ArgumentParser(description="tracking demo")
 parser.add_argument('--video_name', default='', type=str,
@@ -36,6 +37,11 @@ def get_frames(video_name):
                 yield frame
             else:
                 break
+    elif video_name == "test":
+        images = dataLoader()
+        for img in images:
+            frame = cv2.imread(img)
+            yield frame
     else:
         images = glob(os.path.join(video_name, '*.jp*'))
         images = sorted(images,
