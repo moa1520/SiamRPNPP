@@ -42,8 +42,7 @@ def get_frames(video_name):
         files, focal = dataLoader_focal()
         for i in range(len(files)):
             frame = cv2.imread(files[i])
-#            focal_img = cv2.imread(focal[i][69])
-            yield frame, focal
+            yield frame, focal[i]
         # for img in files:
         #     frame = cv2.imread(img)
         #     yield frame
@@ -91,8 +90,8 @@ def main():
             outputs = []
             max_score = 0
             max_index = 0
-            for f in focal:
-                outputs.append(tracker.track(cv2.imread(f[68])))
+            for i in range(len(focal)):
+                outputs.append(tracker.track(cv2.imread(focal[i])))
             for i in range(len(outputs)):
                 if max_score < outputs[i]['best_score']:
                     max_score = outputs[i]['best_score']
@@ -100,7 +99,7 @@ def main():
 
             # outputs = tracker.track(focal)
 #            bbox = list(map(int, outputs['bbox']))
-            bbox = list(map(int, outputs[i]['bbox']))
+            bbox = list(map(int, outputs[max_index]['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
