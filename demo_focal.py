@@ -43,9 +43,6 @@ def get_frames(video_name):
         for i in range(len(files)):
             frame = cv2.imread(files[i])
             yield frame, focal[i]
-        # for img in files:
-        #     frame = cv2.imread(img)
-        #     yield frame
     else:
         images = glob(os.path.join(video_name, '*.jp*'))
         images = sorted(images,
@@ -97,8 +94,6 @@ def main():
                     max_score = outputs[i]['best_score']
                     max_index = i
 
-            # outputs = tracker.track(focal)
-#            bbox = list(map(int, outputs['bbox']))
             bbox = list(map(int, outputs[max_index]['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
