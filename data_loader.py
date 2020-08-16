@@ -4,7 +4,8 @@ import numpy as np
 
 def dataLoader():
     files = []
-    root = 'data/Video3_tiny/'
+    # root = 'data/Video3_tiny/'
+    root = 'E:/NonVideo4/'
     path = os.listdir(root)
     for folder in path:
         file_name = '/images/005.png'
