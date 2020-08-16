@@ -60,7 +60,7 @@ def main():
     model = ModelBuilder()
 
     # load model
-    checkpoint = torch.load("pretrained_model/SiamRPNres50.pth",
+    checkpoint = torch.load("pretrained_model/model.pth",
                             map_location=lambda storage, loc: storage.cpu())
 
     model.load_state_dict(checkpoint)

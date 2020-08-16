@@ -10,7 +10,11 @@
 
 ### Download models
 
-Download models in [PySOT Model Zoo](MODEL_ZOO.md) and put the model.pth in the correct directory in pretrained_model
+Download models in PySOT Model Zoo and put the model.pth in the correct directory in pretrained_model
+
+### Video directory
+
+Make directory named 'data'
 
 ### Test demo
 
