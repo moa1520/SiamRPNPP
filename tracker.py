@@ -107,16 +107,16 @@ class SiamRPNTracker(SiameseTracker):
 
         '''
 
-        # res = outputs['cls'].cpu().detach().numpy()
-        # # res.shape = (1, 10, 25, 25)
-        # res = res[0]
-        # # res.shape = (10, 25, 25)
-        # # plt.imshow(img)
-        # # plt.show()
-        # for i in range(10):
-        #     plt.subplot(2, 5, i+1)
-        #     plt.imshow(res[i, :, :])
+        res = outputs['cls'].cpu().detach().numpy()
+        # res.shape = (1, 10, 25, 25)
+        res = res[0]
+        # res.shape = (10, 25, 25)
+        # plt.imshow(img)
         # plt.show()
+        for i in range(10):
+            plt.subplot(2, 5, i+1)
+            plt.imshow(res[i, :, :])
+        plt.show()
 
         ''''''
 
@@ -168,6 +168,15 @@ class SiamRPNTracker(SiameseTracker):
                 width,
                 height]
         best_score = score[best_idx]
+
+        '''
+        Score 출력
+        '''
+
+        print("best_score: ", best_score)
+
+        ''''''
+
         return {
             'bbox': bbox,
             'best_score': best_score
