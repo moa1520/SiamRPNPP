@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from base_tracker import SiameseTracker
@@ -101,6 +102,22 @@ class SiamRPNTracker(SiameseTracker):
                                     round(s_x), self.channel_average)
 
         outputs = self.model.track(x_crop)
+        '''
+        response 이미지 출력
+        '''
+
+        res = outputs['cls'].cpu().detach().numpy()
+        # res.shape = (1, 10, 25, 25)
+        res = res[0]
+        # res.shape = (10, 25, 25)
+        # plt.imshow(img)
+        # plt.show()
+        for i in range(10):
+            plt.subplot(2, 5, i+1)
+            plt.imshow(res[i, :, :])
+        plt.show()
+
+        ''''''
 
         score = self._convert_score(outputs['cls'])
         pred_bbox = self._convert_bbox(outputs['loc'], self.anchors)
