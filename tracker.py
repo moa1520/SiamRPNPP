@@ -103,19 +103,20 @@ class SiamRPNTracker(SiameseTracker):
 
         outputs = self.model.track(x_crop)
         '''
-        response 이미지 출력
+        response 이미지 출력하기 위해 작성
+
         '''
 
-        res = outputs['cls'].cpu().detach().numpy()
-        # res.shape = (1, 10, 25, 25)
-        res = res[0]
-        # res.shape = (10, 25, 25)
-        # plt.imshow(img)
+        # res = outputs['cls'].cpu().detach().numpy()
+        # # res.shape = (1, 10, 25, 25)
+        # res = res[0]
+        # # res.shape = (10, 25, 25)
+        # # plt.imshow(img)
+        # # plt.show()
+        # for i in range(10):
+        #     plt.subplot(2, 5, i+1)
+        #     plt.imshow(res[i, :, :])
         # plt.show()
-        for i in range(10):
-            plt.subplot(2, 5, i+1)
-            plt.imshow(res[i, :, :])
-        plt.show()
 
         ''''''
 
