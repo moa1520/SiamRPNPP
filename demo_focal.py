@@ -61,7 +61,7 @@ def main():
     model = ModelBuilder()
 
     # load model
-    checkpoint = torch.load("pretrained_model/SiamRPNres50.pth",
+    checkpoint = torch.load("pretrained_model/model.pth",
                             map_location=lambda storage, loc: storage.cpu())
 
     model.load_state_dict(checkpoint)
@@ -75,7 +75,9 @@ def main():
     video_name = root.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
+    a = 0
     for frame, focal in get_frames(root):
+        a += 1
         if first_frame:
             try:
                 init_rect = cv2.selectROI(video_name, frame, False, False)
@@ -94,11 +96,21 @@ def main():
                     max_score = outputs[i]['best_score']
                     max_index = i
 
+            save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
+                0).numpy().transpose((1, 2, 0)).astype(np.int32)
+            #s = ret['detection_cropped_resized']
+            save_path = os.path.join(
+                'data/x_crop', '{:03d}_detection_input.jpg'.format(a))
+            cv2.imwrite(save_path, save_img)
+
             bbox = list(map(int, outputs[max_index]['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
             cv2.imshow(video_name, frame)
+            save_path = os.path.join(
+                'data/output', '{:03d}_detection_input.jpg'.format(a))
+            cv2.imwrite(save_path, frame)
             cv2.waitKey(40)
 
 

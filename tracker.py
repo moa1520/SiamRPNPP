@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
@@ -106,7 +108,8 @@ class SiamRPNTracker(SiameseTracker):
         response 이미지 출력하기 위해 작성
 
         '''
-
+        '''
+        
         res = outputs['cls'].cpu().detach().numpy()
         # res.shape = (1, 10, 25, 25)
         res = res[0]
@@ -118,7 +121,7 @@ class SiamRPNTracker(SiameseTracker):
             plt.imshow(res[i, :, :])
         plt.show()
 
-        ''''''
+        '''
 
         score = self._convert_score(outputs['cls'])
         pred_bbox = self._convert_bbox(outputs['loc'], self.anchors)
@@ -179,7 +182,8 @@ class SiamRPNTracker(SiameseTracker):
 
         return {
             'bbox': bbox,
-            'best_score': best_score
+            'best_score': best_score,
+            'x_crop': x_crop
         }
 
 
