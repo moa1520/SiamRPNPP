@@ -21,3 +21,7 @@ Make directory named 'data'
 ```bash
 python demo.py --video_name data/bag.avi
 ```
+
+# demo.py -> Noaml 2D Image
+
+# demo_focal.py -> Plenoptic Image
