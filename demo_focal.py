@@ -18,10 +18,6 @@ from plenoptic_dataloader import PlenopticDataLoader
 # args = parser.parse_args()
 
 
-start = 0
-end = 101
-
-
 def get_frames(video_name):
     if not video_name:
         cap = cv2.VideoCapture(0)
@@ -60,21 +56,6 @@ def get_frames(video_name):
             yield frame
 
 
-def sharpness1(arr2d):
-    gy, gx = np.gradient(arr2d)
-    gnorm = np.sqrt(gx ** 2 + gy ** 2)
-    sharpness = np.average(gnorm)
-    return sharpness
-
-
-def sharpness2(arr2d):
-    dx = np.diff(arr2d)[1:, :]  # remove the first row
-    dy = np.diff(arr2d, axis=0)[:, 1:]  # remove the first column
-    dnorm = np.sqrt(dx ** 2 + dy ** 2)
-    sharpness = np.average(dnorm)
-    return sharpness
-
-
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("device :", device)
@@ -98,6 +79,8 @@ def main():
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
     a = 0
+    first_time = True
+    current_target = -1
     for frame, focal in get_frames(root):
         a += 1
         if first_frame:
@@ -108,25 +91,41 @@ def main():
             tracker.init(frame, init_rect)
             first_frame = False
         else:
-            sharpness = []
-            for i in range(len(focal)):
-                sharpness.append(sharpness2(cv2.imread(focal[i])[:, :, 0]))
+            outputs = []
+            max_index = -1
+            max_val = 0
+            if first_time:
+                for i in range(len(focal)):
+                    outputs.append(tracker.track(cv2.imread(focal[i])))
 
-            max_index = sharpness.index(max(sharpness))
+                for i in range(len(outputs)):
+                    if outputs[i]['best_score'] >= max_val:
+                        max_val = outputs[i]['best_score']
+                        max_index = i
+                first_time = False
+                current_target = max_index
+            else:
+                for i in range(current_target - 5, current_target + 5):
+                    outputs.append(tracker.track(cv2.imread(focal[i])))
 
-            output = tracker.track(cv2.imread(focal[max_index]))
+                for i in range(len(outputs)):
+                    if outputs[i]['best_score'] >= max_val:
+                        max_val = outputs[i]['best_score']
+                        max_index = i
+                current_target = max_index
+
             print("Focal Image Index: ", max_index + 20)
 
             '''ouput 이미지 저장'''
             # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
             #     0).numpy().transpose((1, 2, 0)).astype(np.int32)
-            # #s = ret['detection_cropped_resized']
+            #s = ret['detection_cropped_resized']
             # save_path = os.path.join(
             #     'data/x_crop', '{:03d}_detection_input.jpg'.format(a))
             # cv2.imwrite(save_path, save_img)
             ''''''
 
-            bbox = list(map(int, output['bbox']))
+            bbox = list(map(int, outputs[max_index]['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
