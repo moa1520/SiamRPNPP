@@ -28,8 +28,12 @@ python demo.py --video_name data/bag.avi
 
 ### 수정한 부분
 
+#### tracker.py
+
 ```bash
 lr = penalty[best_idx] * score[best_idx] * 0.4
 ->
 lr = penalty[best_idx] * score[best_idx] * 0.01
 ```
+
+0.4 대신 0.01로 대체 (BBOX가 과도하게 커지는 것을 막음)
