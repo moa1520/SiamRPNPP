@@ -17,6 +17,9 @@ from plenoptic_dataloader import PlenopticDataLoader
 #                     help='videos or image files')
 # args = parser.parse_args()
 
+start_num = 20
+last_num = 50
+
 
 def get_frames(video_name):
     if not video_name:
@@ -41,7 +44,7 @@ def get_frames(video_name):
                 break
     elif video_name == "test":
         dataLoader_focal = PlenopticDataLoader(
-            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(20, 50))
+            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
         for i in range(len(img2d_files)):
             frame = cv2.imread(img2d_files[i])
@@ -114,7 +117,7 @@ def main():
                         max_index = i
                 current_target = max_index
 
-            print("Focal Image Index: ", max_index + 20)
+            print("Focal Image Index: ", max_index + start_num)
 
             '''ouput 이미지 저장'''
             # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
