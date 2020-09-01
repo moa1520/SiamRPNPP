@@ -8,12 +8,15 @@ from glob import glob
 
 from model import ModelBuilder
 from tracker import build_tracker
-from data_loader import dataLoader
+from plenoptic_dataloader import PlenopticDataLoader
 
 parser = argparse.ArgumentParser(description="tracking demo")
 parser.add_argument('--video_name', default='', type=str,
                     help='videos or image files')
 args = parser.parse_args()
+
+start_num = 0
+last_num = 100
 
 
 def get_frames(video_name):
@@ -38,7 +41,9 @@ def get_frames(video_name):
             else:
                 break
     elif video_name == "test":
-        images = dataLoader()
+        data_loader = PlenopticDataLoader(
+            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
+        images = data_loader.dataLoader_2d()
         for img in images:
             frame = cv2.imread(img)
             yield frame

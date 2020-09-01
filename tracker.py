@@ -54,7 +54,6 @@ class SiamRPNTracker(SiameseTracker):
         score = score.permute(1, 2, 3, 0).contiguous().view(
             2, -1).permute(1, 0)
         score = F.softmax(score, dim=1).data[:, 1].cpu().numpy()
-        # score = score[:, 1].detach().cpu().numpy()
         return score
 
     def _bbox_clip(self, cx, cy, width, height, boundary):
@@ -148,8 +147,8 @@ class SiamRPNTracker(SiameseTracker):
         best_idx = np.argmax(pscore)
 
         bbox = pred_bbox[:, best_idx] / scale_z
-        # lr = penalty[best_idx] * score[best_idx] * 0.4
-        lr = penalty[best_idx] * score[best_idx] * 0.01
+        # lr = penalty[best_idx] * score[best_idx] * 0.4  # cfg.TRACK.LR
+        lr = penalty[best_idx] * score[best_idx] * 0.05
 
         cx = bbox[0] + self.center_pos[0]
         cy = bbox[1] + self.center_pos[1]
@@ -175,6 +174,7 @@ class SiamRPNTracker(SiameseTracker):
         return {
             'bbox': bbox,
             'best_score': best_score
+            # 'cls': outputs['cls']
         }
 
 

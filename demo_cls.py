@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from glob import glob
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 
 from model import ModelBuilder
 from tracker import build_tracker
@@ -16,8 +17,8 @@ from plenoptic_dataloader import PlenopticDataLoader
 #                     help='videos or image files')
 # args = parser.parse_args()
 
-start_num = 20
-last_num = 50
+start_num = 0
+last_num = 100
 
 
 def get_frames(video_name):
@@ -95,15 +96,26 @@ def main():
         else:
             outputs = []
             max_index = -1
-            max_val = 0
+            sum_cls = torch.Tensor(1, 10, 25, 25)
             if first_time:
                 for i in range(len(focal)):
                     outputs.append(tracker.track(cv2.imread(focal[i])))
 
                 for i in range(len(outputs)):
-                    if outputs[i]['best_score'] >= max_val:
-                        max_val = outputs[i]['best_score']
-                        max_index = i
+                    if i == 0:
+                        sum_cls = outputs[i]['cls']
+                    else:
+                        sum_cls = torch.cat(
+                            [sum_cls, outputs[i]['cls']], dim=1)
+
+                # convert_score
+                sum_cls = sum_cls.permute(1, 2, 3, 0).contiguous().view(
+                    2, -1).permute(1, 0)
+                sum_cls = F.softmax(sum_cls, dim=1).data[:, 1].cpu().numpy()
+                best_idx = np.argmax(sum_cls)
+
+                max_index = best_idx // 3125
+
                 first_time = False
                 current_target = max_index
             else:
@@ -111,9 +123,20 @@ def main():
                     outputs.append(tracker.track(cv2.imread(focal[i])))
 
                 for i in range(len(outputs)):
-                    if outputs[i]['best_score'] >= max_val:
-                        max_val = outputs[i]['best_score']
-                        max_index = i
+                    if i == 0:
+                        sum_cls = outputs[i]['cls']
+                    else:
+                        sum_cls = torch.cat(
+                            [sum_cls, outputs[i]['cls']], dim=1)
+
+                # convert_score
+                sum_cls = sum_cls.permute(1, 2, 3, 0).contiguous().view(
+                    2, -1).permute(1, 0)
+                sum_cls = F.softmax(sum_cls, dim=1).data[:, 1].cpu().numpy()
+                best_idx = np.argmax(sum_cls)
+
+                max_index = best_idx // 3125
+
                 if max_index > 3:
                     current_target = current_target + abs(3 - max_index)
                 elif max_index < 3:
