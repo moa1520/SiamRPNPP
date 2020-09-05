@@ -98,44 +98,13 @@ def main():
             max_index = -1
             sum_cls = torch.Tensor(1, 10, 25, 25)
             if first_time:
-                for i in range(len(focal)):
-                    outputs.append(tracker.track(cv2.imread(focal[i])))
-
-                for i in range(len(outputs)):
-                    if i == 0:
-                        sum_cls = outputs[i]['cls']
-                    else:
-                        sum_cls = torch.cat(
-                            [sum_cls, outputs[i]['cls']], dim=1)
-
-                # convert_score
-                sum_cls = sum_cls.permute(1, 2, 3, 0).contiguous().view(
-                    2, -1).permute(1, 0)
-                sum_cls = F.softmax(sum_cls, dim=1).data[:, 1].cpu().numpy()
-                best_idx = np.argmax(sum_cls)
-
-                max_index = best_idx // 3125
+                max_index = tracker.get_cls(focal)
 
                 first_time = False
                 current_target = max_index
             else:
-                for i in range(current_target - 3, current_target + 3):
-                    outputs.append(tracker.track(cv2.imread(focal[i])))
-
-                for i in range(len(outputs)):
-                    if i == 0:
-                        sum_cls = outputs[i]['cls']
-                    else:
-                        sum_cls = torch.cat(
-                            [sum_cls, outputs[i]['cls']], dim=1)
-
-                # convert_score
-                sum_cls = sum_cls.permute(1, 2, 3, 0).contiguous().view(
-                    2, -1).permute(1, 0)
-                sum_cls = F.softmax(sum_cls, dim=1).data[:, 1].cpu().numpy()
-                best_idx = np.argmax(sum_cls)
-
-                max_index = best_idx // 3125
+                max_index = tracker.get_cls(
+                    focal[current_target - 3:current_target + 3])
 
                 if max_index > 3:
                     current_target = current_target + abs(3 - max_index)
@@ -152,8 +121,9 @@ def main():
             #     'data/x_crop', '{:03d}_detection_input.jpg'.format(a))
             # cv2.imwrite(save_path, save_img)
             ''''''
+            output = tracker.track(cv2.imread(focal[max_index]))
 
-            bbox = list(map(int, outputs[max_index]['bbox']))
+            bbox = list(map(int, output['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)

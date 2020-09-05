@@ -1,8 +1,10 @@
 import os
 
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+import torch
 
 from base_tracker import SiameseTracker
 from anchor import Anchors
@@ -86,6 +88,35 @@ class SiamRPNTracker(SiameseTracker):
                                     127,
                                     s_z, self.channel_average)
         self.model.template(z_crop)
+
+    def get_cls(self, focals):
+        max_index = -1
+        sum_cls = torch.Tensor(1, 10, 25, 25)
+        for i, focal in enumerate(focals):
+            focal = cv2.imread(focal)
+            w_z = self.size[0] + 0.5 * np.sum(self.size)
+            h_z = self.size[1] + 0.5 * np.sum(self.size)
+            s_z = np.sqrt(w_z * h_z)
+            scale_z = 127 / s_z
+            s_x = s_z * (255 / 127)
+            x_crop = self.get_subwindow(focal, self.center_pos,
+                                        255,
+                                        round(s_x), self.channel_average)
+
+            outputs = self.model.track(x_crop)
+
+            if i == 0:
+                sum_cls = outputs['cls']
+            else:
+                sum_cls = torch.cat([sum_cls, outputs['cls']], dim=1)
+
+            # convert_score
+            score = self._convert_score(sum_cls)
+            best_idx = np.argmax(score)
+
+            max_index = best_idx // 3125
+
+        return max_index
 
     def track(self, img):
         """
@@ -174,7 +205,6 @@ class SiamRPNTracker(SiameseTracker):
         return {
             'bbox': bbox,
             'best_score': best_score
-            # 'cls': outputs['cls']
         }
 
 
