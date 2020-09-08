@@ -2,7 +2,7 @@ import os
 import cv2
 
 
-root = 'data/result_1/'
+root = 'data/result/'
 path = os.listdir(root)
 mat = 'focal_images'
 files = []

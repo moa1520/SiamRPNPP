@@ -17,8 +17,8 @@ from plenoptic_dataloader import PlenopticDataLoader
 #                     help='videos or image files')
 # args = parser.parse_args()
 
-start_num = 0
-last_num = 100
+start_num = 18
+last_num = 33
 
 
 def get_frames(video_name):
@@ -94,39 +94,34 @@ def main():
             tracker.init(frame, init_rect)
             first_frame = False
         else:
-            outputs = []
-            max_index = -1
-            sum_cls = torch.Tensor(1, 10, 25, 25)
+
+            ''' 전체 범위 방법 '''
+            # max_index = tracker.get_cls(focal)
+            # current_target = max_index
+
+            ''' 범위 지정 방법 '''
             if first_time:
                 max_index = tracker.get_cls(focal)
-
-                first_time = False
                 current_target = max_index
+                first_time = False
             else:
                 max_index = tracker.get_cls(
-                    focal[current_target - 3:current_target + 3])
-
+                    focal[current_target-3:current_target+3])
                 if max_index > 3:
                     current_target = current_target + abs(3 - max_index)
                 elif max_index < 3:
                     current_target = current_target - abs(3 - max_index)
 
-            print("Focal Image Index: ", current_target + start_num)
+            print("Focal Image Index: ", current_target)
 
-            '''ouput 이미지 저장'''
-            # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
-            #     0).numpy().transpose((1, 2, 0)).astype(np.int32)
-            #s = ret['detection_cropped_resized']
-            # save_path = os.path.join(
-            #     'data/x_crop', '{:03d}_detection_input.jpg'.format(a))
-            # cv2.imwrite(save_path, save_img)
-            ''''''
-            output = tracker.track(cv2.imread(focal[max_index]))
+            output = tracker.track(cv2.imread(focal[current_target]))
 
             bbox = list(map(int, output['bbox']))
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
+            cv2.putText(frame, str(current_target + start_num), (30, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
             cv2.imshow(video_name, frame)
 
             '''output 이미지 저장'''

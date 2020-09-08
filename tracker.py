@@ -90,10 +90,20 @@ class SiamRPNTracker(SiameseTracker):
         self.model.template(z_crop)
 
     def get_cls(self, focals):
+
+        # sharpening
+        sharpening_1 = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+        sharpening_2 = np.array([[-1, -1, -1, -1, -1],
+                                 [-1, 2, 2, 2, -1],
+                                 [-1, 2, 9, 2, -1],
+                                 [-1, 2, 2, 2, -1],
+                                 [-1, -1, -1, -1, -1]]) / 9.0
+
         max_index = -1
         sum_cls = torch.Tensor(1, 10, 25, 25)
         for i, focal in enumerate(focals):
             focal = cv2.imread(focal)
+            focal = cv2.filter2D(focal, -1, sharpening_1)
             w_z = self.size[0] + 0.5 * np.sum(self.size)
             h_z = self.size[1] + 0.5 * np.sum(self.size)
             s_z = np.sqrt(w_z * h_z)
@@ -110,11 +120,11 @@ class SiamRPNTracker(SiameseTracker):
             else:
                 sum_cls = torch.cat([sum_cls, outputs['cls']], dim=1)
 
-            # convert_score
-            score = self._convert_score(sum_cls)
-            best_idx = np.argmax(score)
+        # convert_score
+        score = self._convert_score(sum_cls)
+        best_idx = np.argmax(score)
 
-            max_index = best_idx // 3125
+        max_index = best_idx // 3125
 
         return max_index
 
@@ -125,6 +135,8 @@ class SiamRPNTracker(SiameseTracker):
         return:
             bbox(list):[x, y, width, height]
         """
+        sharpening_1 = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+        img = cv2.filter2D(img, -1, sharpening_1)
         w_z = self.size[0] + 0.5 * np.sum(self.size)
         h_z = self.size[1] + 0.5 * np.sum(self.size)
         s_z = np.sqrt(w_z * h_z)
