@@ -44,7 +44,7 @@ def get_frames(video_name):
         data_loader = PlenopticDataLoader(
             root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         images = data_loader.dataLoader_2d()
-        for img in images:
+        for img in images[:120]:
             frame = cv2.imread(img)
             yield frame
     else:
@@ -116,7 +116,11 @@ def main():
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
-            cv2.putText(frame, str(distance), (30, 60),
+            cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
+                          (bbox_label[0]+bbox_label[2],
+                           bbox_label[1]+bbox_label[3]),
+                          (255, 255, 0), 3)
+            cv2.putText(frame, "distance:" + str(distance), (30, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
             cv2.imshow(video_name, frame)
             cv2.waitKey(40)

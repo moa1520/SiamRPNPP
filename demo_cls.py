@@ -46,7 +46,8 @@ def get_frames(video_name):
         dataLoader_focal = PlenopticDataLoader(
             root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
-        for i in range(len(img2d_files)):
+        for i in range(0, 120):
+            # for i in range(len(img2d_files)):
             frame = cv2.imread(img2d_files[i])
             yield frame, focal_files[i]
     else:
@@ -140,6 +141,10 @@ def main():
             distance = ((center[0] - center_label[0]) **
                         2 + (center[1] - center_label[1]) ** 2) ** 0.5
 
+            result_cls = open('ground_truth/result_cls.txt', 'a')
+            result_cls.write(str(distance) + ',')
+            result_cls.close()
+
             cv2.rectangle(frame, left_top,
                           right_bottom,
                           (0, 255, 0), 3)
@@ -151,7 +156,7 @@ def main():
 
             '''output 이미지 저장'''
             save_path = os.path.join(
-                'data/result', '{:03d}_detection_input.jpg'.format(a))
+                'data/result', '{:03d}.jpg'.format(a))
             cv2.imwrite(save_path, frame)
             ''''''
             cv2.waitKey(40)

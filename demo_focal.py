@@ -45,7 +45,8 @@ def get_frames(video_name):
         dataLoader_focal = PlenopticDataLoader(
             root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
-        for i in range(len(img2d_files)):
+        for i in range(0, 120):
+            # for i in range(len(img2d_files)):
             frame = cv2.imread(img2d_files[i])
             yield frame, focal_files[i]
     else:
@@ -61,6 +62,9 @@ def get_frames(video_name):
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("device :", device)
+
+    # ground truth
+    f = open('ground_truth/new_record.txt', 'r')
 
     # create model
     model = ModelBuilder()
@@ -121,8 +125,8 @@ def main():
 
             print("Focal Image Index: ", current_target + start_num)
 
-            ground_truth(outputs[max_index]['center'],
-                         outputs[max_index]['size'], a)
+            # ground_truth(outputs[max_index]['center'],
+            #              outputs[max_index]['size'], a)
 
             '''ouput 이미지 저장'''
             # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
@@ -134,13 +138,43 @@ def main():
             ''''''
 
             bbox = list(map(int, outputs[max_index]['bbox']))
+
+            # ground truth
+            line = f.readline()
+            bbox_label = line.split(',')
+            bbox_label = list(map(int, bbox_label))
+            left_top_label = (bbox_label[0], bbox_label[1])
+            right_bottom_label = (
+                bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
+
+            left_top = (bbox[0], bbox[1])
+            right_bottom = (bbox[0]+bbox[2], bbox[1]+bbox[3])
+
+            center = ((left_top[0] + right_bottom[0]) / 2,
+                      (left_top[1] + right_bottom[1]) / 2)
+            center_label = ((left_top_label[0] + right_bottom_label[0]) / 2,
+                            (left_top_label[1] + right_bottom_label[1]) / 2)
+
+            distance = ((center[0] - center_label[0]) **
+                        2 + (center[1] - center_label[1]) ** 2) ** 0.5
+
+            result_cls = open('ground_truth/result_cls.txt', 'a')
+            result_cls.write(str(distance) + ',')
+            result_cls.close()
+
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
+            cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
+                          (bbox_label[0]+bbox_label[2],
+                           bbox_label[1]+bbox_label[3]),
+                          (255, 255, 0), 3)
             cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
             cv2.putText(frame, "frame: " + str(a), (30, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
+            cv2.putText(frame, "distance: " + str(distance), (30, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
             cv2.imshow(video_name, frame)
 
             '''output 이미지 저장'''

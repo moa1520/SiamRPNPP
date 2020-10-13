@@ -229,8 +229,8 @@ class SiamRPNTracker(SiameseTracker):
         return {
             'bbox': bbox,
             'best_score': best_score,
-            'center': self.center_pos,
-            'size': self.size
+            # 'center': self.center_pos,
+            # 'size': self.size
         }
 
 
