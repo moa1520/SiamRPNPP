@@ -61,6 +61,9 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("device :", device)
 
+    # ground truth
+    f = open('ground_truth/new_record.txt', 'r')
+
     # create model
     model = ModelBuilder()
 
@@ -90,9 +93,31 @@ def main():
         else:
             outputs = tracker.track(frame)
             bbox = list(map(int, outputs['bbox']))
+
+            # ground truth
+            line = f.readline()
+            bbox_label = line.split(',')
+            bbox_label = list(map(int, bbox_label))
+            left_top_label = (bbox_label[0], bbox_label[1])
+            right_bottom_label = (
+                bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
+
+            left_top = (bbox[0], bbox[1])
+            right_bottom = (bbox[0]+bbox[2], bbox[1]+bbox[3])
+
+            center = ((left_top[0] + right_bottom[0]) / 2,
+                      (left_top[1] + right_bottom[1]) / 2)
+            center_label = ((left_top_label[0] + right_bottom_label[0]) / 2,
+                            (left_top_label[1] + right_bottom_label[1]) / 2)
+
+            distance = ((center[0] - center_label[0]) **
+                        2 + (center[1] - center_label[1]) ** 2) ** 0.5
+
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
+            cv2.putText(frame, str(distance), (30, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
             cv2.imshow(video_name, frame)
             cv2.waitKey(40)
 

@@ -121,6 +121,9 @@ def main():
 
             print("Focal Image Index: ", current_target + start_num)
 
+            ground_truth(outputs[max_index]['center'],
+                         outputs[max_index]['size'], a)
+
             '''ouput 이미지 저장'''
             # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
             #     0).numpy().transpose((1, 2, 0)).astype(np.int32)
@@ -134,14 +137,26 @@ def main():
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
+            cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
+            cv2.putText(frame, "frame: " + str(a), (30, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
             cv2.imshow(video_name, frame)
 
             '''output 이미지 저장'''
             save_path = os.path.join(
-                'data/result', '{:03d}_detection_input.jpg'.format(a))
+                'data/result', '{:03d}.jpg'.format(a))
             cv2.imwrite(save_path, frame)
             ''''''
             cv2.waitKey(40)
+
+
+def ground_truth(center, size, frame_num):
+    f = open("ground_truth/record.txt", 'a')
+    data = "%d번째 frame (x, y, w, h) /%f/%f/%f/%f\n" % (frame_num,
+                                                       center[0], center[1], size[0], size[1])
+    f.write(data)
+    f.close()
 
 
 if __name__ == "__main__":

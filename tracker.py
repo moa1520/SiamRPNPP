@@ -124,19 +124,19 @@ class SiamRPNTracker(SiameseTracker):
         score = self._convert_score(sum_cls)
 
         ''' score값들의 평균 중 max 뽑아내는 방법 '''
-        # group = []
-        # for i in range(len(score) // 3125):
-        #     group.append(score[3125 * i: 3125 * (i+1)])
+        group = []
+        for i in range(len(score) // 3125):
+            group.append(score[3125 * i: 3125 * (i+1)])
 
-        # for i in range(len(group)):
-        #     group[i] = np.mean(group[i])
-        # max_index = np.argmax(group)
+        for i in range(len(group)):
+            group[i] = np.mean(group[i])
+        max_index = np.argmax(group)
 
         ''''''
 
-        best_idx = np.argmax(score)
+        # best_idx = np.argmax(score)
 
-        max_index = best_idx // 3125
+        # max_index = best_idx // 3125
 
         return max_index
 
@@ -228,7 +228,9 @@ class SiamRPNTracker(SiameseTracker):
 
         return {
             'bbox': bbox,
-            'best_score': best_score
+            'best_score': best_score,
+            'center': self.center_pos,
+            'size': self.size
         }
 
 
