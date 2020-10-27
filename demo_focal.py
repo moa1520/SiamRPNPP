@@ -1,3 +1,4 @@
+from IOU import IOU
 import os
 import argparse
 
@@ -45,8 +46,8 @@ def get_frames(video_name):
         dataLoader_focal = PlenopticDataLoader(
             root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
-        for i in range(0, 120):
-            # for i in range(len(img2d_files)):
+        # for i in range(0, 120):
+        for i in range(len(img2d_files)):
             frame = cv2.imread(img2d_files[i])
             yield frame, focal_files[i]
     else:
@@ -59,7 +60,7 @@ def get_frames(video_name):
             yield frame
 
 
-def main():
+def main(record=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("device :", device)
 
@@ -143,12 +144,16 @@ def main():
             line = f.readline()
             bbox_label = line.split(',')
             bbox_label = list(map(int, bbox_label))
+
             left_top_label = (bbox_label[0], bbox_label[1])
             right_bottom_label = (
                 bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
 
             left_top = (bbox[0], bbox[1])
             right_bottom = (bbox[0]+bbox[2], bbox[1]+bbox[3])
+
+            iou = IOU(bbox[0],  bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3],
+                      bbox_label[0], bbox_label[1], bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
 
             center = ((left_top[0] + right_bottom[0]) / 2,
                       (left_top[1] + right_bottom[1]) / 2)
@@ -158,9 +163,14 @@ def main():
             distance = ((center[0] - center_label[0]) **
                         2 + (center[1] - center_label[1]) ** 2) ** 0.5
 
-            result_cls = open('ground_truth/result_cls.txt', 'a')
-            result_cls.write(str(distance) + ',')
-            result_cls.close()
+            if record:
+                result_pre = open('ground_truth/result_pre.txt', 'a')
+                result_pre.write(str(distance) + ',')
+                result_pre.close()
+
+                result_iou = open('ground_truth/result_iou.txt', 'a')
+                result_iou.write(str(iou) + ',')
+                result_iou.close()
 
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
@@ -168,27 +178,29 @@ def main():
             cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
                           (bbox_label[0]+bbox_label[2],
                            bbox_label[1]+bbox_label[3]),
-                          (255, 255, 0), 3)
+                          (127, 127, 127), 3)
             cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
             cv2.putText(frame, "frame: " + str(a), (30, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
             cv2.putText(frame, "distance: " + str(distance), (30, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
+            cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 180, 180))
             cv2.imshow(video_name, frame)
 
-            '''output 이미지 저장'''
-            save_path = os.path.join(
-                'data/result', '{:03d}.jpg'.format(a))
-            cv2.imwrite(save_path, frame)
-            ''''''
+            if record:
+                '''output 이미지 저장'''
+                save_path = os.path.join(
+                    'data/result', '{:03d}.jpg'.format(a))
+                cv2.imwrite(save_path, frame)
+                ''''''
             cv2.waitKey(40)
 
 
-def ground_truth(center, size, frame_num):
+def ground_truth(center, size):
     f = open("ground_truth/record.txt", 'a')
-    data = "%d번째 frame (x, y, w, h) /%f/%f/%f/%f\n" % (frame_num,
-                                                       center[0], center[1], size[0], size[1])
+    data = "%f/%f/%f/%f\n" % (center[0], center[1], size[0], size[1])
     f.write(data)
     f.close()
 
