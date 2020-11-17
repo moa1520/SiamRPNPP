@@ -1,61 +1,26 @@
+from get_frame import get_frames
 from IOU import IOU
 import os
 import argparse
 
 import cv2
 import torch
-import numpy as np
-from glob import glob
 
 from model import ModelBuilder
 from tracker import build_tracker
-from plenoptic_dataloader import PlenopticDataLoader
 
 parser = argparse.ArgumentParser(description="tracking demo")
 parser.add_argument('--video_name', default='', type=str,
                     help='videos or image files')
+parser.add_argument('--gt_on', default=False, type=bool, help='Estimate IoU')
+parser.add_argument('--start_num', default=20, type=int,
+                    help='First focal image number')
+parser.add_argument('--last_num', default=50, type=int,
+                    help='Last focal image number')
 args = parser.parse_args()
 
-start_num = 20
-last_num = 50
-
-
-def get_frames(video_name):
-    if not video_name:
-        cap = cv2.VideoCapture(0)
-        # warmup
-        for i in range(5):
-            cap.read()
-        while True:
-            ret, frame = cap.read()
-            if ret:
-                yield frame
-            else:
-                break
-    elif video_name.endswith('avi') or \
-            video_name.endswith('mp4'):
-        cap = cv2.VideoCapture(video_name)
-        while True:
-            ret, frame = cap.read()
-            if ret:
-                yield frame
-            else:
-                break
-    elif video_name == "test":
-        data_loader = PlenopticDataLoader(
-            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
-        images = data_loader.dataLoader_2d()
-        for img in images[:150]:
-            frame = cv2.imread(img)
-            yield frame
-    else:
-        images = glob(os.path.join(video_name, '*.jp*'))
-        images = sorted(images,
-                        key=lambda x: x.split('/')[-1].split('.')[0])
-        # key=lambda x: int(x.split('/')[-1].split('.')[0]))
-        for img in images:
-            frame = cv2.imread(img)
-            yield frame
+start_num = args.start_num
+last_num = args.last_num
 
 
 def main():
@@ -63,8 +28,8 @@ def main():
     print("device :", device)
 
     # ground truth
-    gt_on = True
-    f = open('ground_truth/Non_video4_GT.txt', 'r')
+    gt_on = args.gt_on  # IoU 정확도를 측정할 것인지
+    f = open('ground_truth/Non_video4_GT.txt', 'r')  # GT 파일
 
     # create model
     model = ModelBuilder()
@@ -84,7 +49,7 @@ def main():
     video_name = root.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
-    for frame in get_frames(root):
+    for frame in get_frames(root, start_num, last_num):
         if first_frame:
             try:
                 init_rect = cv2.selectROI(video_name, frame, False, False)
@@ -102,8 +67,7 @@ def main():
                 bbox_label = line.split(',')
                 bbox_label = list(map(int, bbox_label))
 
-                iou = IOU(bbox[0],  bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3],
-                          bbox_label[0], bbox_label[1], bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
+                iou = IOU(bbox, bbox_label)
 
                 result_iou = open('ground_truth/result_iou.txt', 'a')
                 result_iou.write(str(iou) + ',')
