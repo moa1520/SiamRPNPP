@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-f = open('ground_truth/result_iou.txt', 'r')
+f = open('ground_truth/Non_video4_Final_result_iou.txt', 'r')
 
 output = f.readline()
 output = output.split(',')
@@ -15,4 +15,5 @@ f.close()
 x_values = list(range(1, len(output) + 1))
 
 plt.plot(x_values, output)
+plt.grid()
 plt.show()

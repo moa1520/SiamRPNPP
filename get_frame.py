@@ -27,7 +27,7 @@ def get_frames(video_name, start_num, last_num):
                 break
     elif video_name == "test":
         dataLoader_focal = PlenopticDataLoader(
-            root='E:/Video3', img2d_ref='images/017.png', focal_range=(start_num, last_num))
+            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
         # for i in range(len(img2d_files)):
         for i in range(150):
