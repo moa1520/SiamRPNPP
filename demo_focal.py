@@ -17,6 +17,8 @@ from plenoptic_dataloader import PlenopticDataLoader
 #                     help='videos or image files')
 # args = parser.parse_args()
 
+# start_num = 70
+# last_num = 85
 start_num = 20
 last_num = 50
 
@@ -44,10 +46,10 @@ def get_frames(video_name):
                 break
     elif video_name == "test":
         dataLoader_focal = PlenopticDataLoader(
-            root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
+            root='E:/Video3', img2d_ref='images/017.png', focal_range=(start_num, last_num))
         img2d_files, focal_files = dataLoader_focal.dataLoader_focal()
-        # for i in range(0, 120):
-        for i in range(len(img2d_files)):
+        # for i in range(len(img2d_files)):
+        for i in range(150):
             frame = cv2.imread(img2d_files[i])
             yield frame, focal_files[i]
     else:
@@ -65,7 +67,8 @@ def main(record=False):
     print("device :", device)
 
     # ground truth
-    f = open('ground_truth/new_record.txt', 'r')
+    gt_on = True
+    f = open('ground_truth/Video3.txt', 'r')
 
     # create model
     model = ModelBuilder()
@@ -98,12 +101,20 @@ def main(record=False):
             tracker.init(frame, init_rect)
             first_frame = False
         else:
-            outputs = []
+            # max_index = -1
+            # max_val = 0
+            # outputs = [tracker.track(cv2.imread(f)) for f in focal]
+
+            # for i in range(len(outputs)):
+            #     if outputs[i]['best_score'] >= max_val:
+            #         max_val = outputs[i]['best_score']
+            #         max_index = i
+
+            ############################################
             max_index = -1
             max_val = 0
             if first_time:
-                for i in range(len(focal)):
-                    outputs.append(tracker.track(cv2.imread(focal[i])))
+                outputs = [tracker.track(cv2.imread(f)) for f in focal]
 
                 for i in range(len(outputs)):
                     if outputs[i]['best_score'] >= max_val:
@@ -112,8 +123,8 @@ def main(record=False):
                 first_time = False
                 current_target = max_index
             else:
-                for i in range(current_target - 3, current_target + 3):
-                    outputs.append(tracker.track(cv2.imread(focal[i])))
+                outputs = [tracker.track(cv2.imread(focal[i])) for i in range(
+                    current_target - 3, current_target + 3)]
 
                 for i in range(len(outputs)):
                     if outputs[i]['best_score'] >= max_val:
@@ -126,8 +137,8 @@ def main(record=False):
 
             print("Focal Image Index: ", current_target + start_num)
 
-            # ground_truth(outputs[max_index]['center'],
-            #              outputs[max_index]['size'], a)
+            # ground_truth(outputs[max_index]['bbox'][:2],
+            #              outputs[max_index]['bbox'][2:])
 
             '''ouput 이미지 저장'''
             # save_img = outputs[max_index]['x_crop'].data.cpu().squeeze(
@@ -137,56 +148,37 @@ def main(record=False):
             #     'data/x_crop', '{:03d}_detection_input.jpg'.format(a))
             # cv2.imwrite(save_path, save_img)
             ''''''
+            #########################################################################
 
             bbox = list(map(int, outputs[max_index]['bbox']))
 
             # ground truth
-            line = f.readline()
-            bbox_label = line.split(',')
-            bbox_label = list(map(int, bbox_label))
+            if gt_on:
+                line = f.readline()
+                bbox_label = line.split(',')
+                bbox_label = list(map(int, bbox_label))
 
-            left_top_label = (bbox_label[0], bbox_label[1])
-            right_bottom_label = (
-                bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
+                iou = IOU(bbox[0],  bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3],
+                          bbox_label[0], bbox_label[1], bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
 
-            left_top = (bbox[0], bbox[1])
-            right_bottom = (bbox[0]+bbox[2], bbox[1]+bbox[3])
-
-            iou = IOU(bbox[0],  bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3],
-                      bbox_label[0], bbox_label[1], bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
-
-            center = ((left_top[0] + right_bottom[0]) / 2,
-                      (left_top[1] + right_bottom[1]) / 2)
-            center_label = ((left_top_label[0] + right_bottom_label[0]) / 2,
-                            (left_top_label[1] + right_bottom_label[1]) / 2)
-
-            distance = ((center[0] - center_label[0]) **
-                        2 + (center[1] - center_label[1]) ** 2) ** 0.5
-
-            if record:
-                result_pre = open('ground_truth/result_pre.txt', 'a')
-                result_pre.write(str(distance) + ',')
-                result_pre.close()
-
-                result_iou = open('ground_truth/result_iou.txt', 'a')
-                result_iou.write(str(iou) + ',')
-                result_iou.close()
+                if record:
+                    result_iou = open('ground_truth/result_iou.txt', 'a')
+                    result_iou.write(str(iou) + ',')
+                    result_iou.close()
+                cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
+                              (bbox_label[0]+bbox_label[2],
+                               bbox_label[1]+bbox_label[3]),
+                              (0, 0, 255), 3)
+                cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
 
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
-            cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
-                          (bbox_label[0]+bbox_label[2],
-                           bbox_label[1]+bbox_label[3]),
-                          (127, 127, 127), 3)
             cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
             cv2.putText(frame, "frame: " + str(a), (30, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
-            cv2.putText(frame, "distance: " + str(distance), (30, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
-            cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 180, 180))
             cv2.imshow(video_name, frame)
 
             if record:
@@ -199,11 +191,11 @@ def main(record=False):
 
 
 def ground_truth(center, size):
-    f = open("ground_truth/record.txt", 'a')
-    data = "%f/%f/%f/%f\n" % (center[0], center[1], size[0], size[1])
+    f = open("ground_truth/Video3.txt", 'a')
+    data = "%d,%d,%d,%d\n" % (center[0], center[1], size[0], size[1])
     f.write(data)
     f.close()
 
 
 if __name__ == "__main__":
-    main()
+    main(record=True)

@@ -1,3 +1,4 @@
+from IOU import IOU
 import os
 import argparse
 
@@ -15,8 +16,8 @@ parser.add_argument('--video_name', default='', type=str,
                     help='videos or image files')
 args = parser.parse_args()
 
-start_num = 0
-last_num = 100
+start_num = 20
+last_num = 50
 
 
 def get_frames(video_name):
@@ -44,7 +45,7 @@ def get_frames(video_name):
         data_loader = PlenopticDataLoader(
             root='E:/NonVideo4', img2d_ref='images/005.png', focal_range=(start_num, last_num))
         images = data_loader.dataLoader_2d()
-        for img in images[:120]:
+        for img in images[:150]:
             frame = cv2.imread(img)
             yield frame
     else:
@@ -62,7 +63,8 @@ def main():
     print("device :", device)
 
     # ground truth
-    f = open('ground_truth/new_record.txt', 'r')
+    gt_on = True
+    f = open('ground_truth/Non_video4_GT.txt', 'r')
 
     # create model
     model = ModelBuilder()
@@ -94,34 +96,30 @@ def main():
             outputs = tracker.track(frame)
             bbox = list(map(int, outputs['bbox']))
 
-            # ground truth
-            line = f.readline()
-            bbox_label = line.split(',')
-            bbox_label = list(map(int, bbox_label))
-            left_top_label = (bbox_label[0], bbox_label[1])
-            right_bottom_label = (
-                bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
+            #### ground truth ####
+            if gt_on:
+                line = f.readline()
+                bbox_label = line.split(',')
+                bbox_label = list(map(int, bbox_label))
 
-            left_top = (bbox[0], bbox[1])
-            right_bottom = (bbox[0]+bbox[2], bbox[1]+bbox[3])
+                iou = IOU(bbox[0],  bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3],
+                          bbox_label[0], bbox_label[1], bbox_label[0]+bbox_label[2], bbox_label[1]+bbox_label[3])
 
-            center = ((left_top[0] + right_bottom[0]) / 2,
-                      (left_top[1] + right_bottom[1]) / 2)
-            center_label = ((left_top_label[0] + right_bottom_label[0]) / 2,
-                            (left_top_label[1] + right_bottom_label[1]) / 2)
+                result_iou = open('ground_truth/result_iou.txt', 'a')
+                result_iou.write(str(iou) + ',')
+                result_iou.close()
 
-            distance = ((center[0] - center_label[0]) **
-                        2 + (center[1] - center_label[1]) ** 2) ** 0.5
+                cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
+                              (bbox_label[0]+bbox_label[2],
+                               bbox_label[1]+bbox_label[3]),
+                              (0, 0, 255), 3)
+                cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+            #### ----------------- ####
 
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                           (0, 255, 0), 3)
-            cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
-                          (bbox_label[0]+bbox_label[2],
-                           bbox_label[1]+bbox_label[3]),
-                          (255, 255, 0), 3)
-            cv2.putText(frame, "distance:" + str(distance), (30, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255))
             cv2.imshow(video_name, frame)
             cv2.waitKey(40)
 
