@@ -16,8 +16,8 @@ parser.add_argument('--type', default='2D', type=str,
                     help='2D video or 3D video')
 parser.add_argument('--img2d_ref', default='images/005.png',
                     type=str, help='Main image root')
-parser.add_argument('--gt_on', default=True, type=bool, help='Estimate IoU')
-parser.add_argument('--record', default=True, type=bool,
+parser.add_argument('--gt_on', default=False, type=bool, help='Estimate IoU')
+parser.add_argument('--record', default=False, type=bool,
                     help='Save images and IoU accuracy')
 parser.add_argument('--start_num', default=20, type=int,
                     help='First focal image number')
@@ -27,8 +27,6 @@ args = parser.parse_args()
 
 # start_num = 70
 # last_num = 85
-start_num = args.start_num
-last_num = args.last_num
 
 
 def main():
@@ -60,7 +58,7 @@ def main():
     frame_num = 0
     first_time = True
     current_target = -1
-    for frame, focal in get_frames(args.video_name, args.type, args.img2d_ref, start_num, last_num):
+    for frame, focal in get_frames(args.video_name, args.type, args.img2d_ref, args.start_num, args.last_num):
         frame_num += 1
         if first_frame:
             try:
@@ -93,8 +91,6 @@ def main():
                     current_target = current_target + abs(3 - max_index)
                 elif max_index < 3:
                     current_target = current_target - abs(3 - max_index)
-
-            print("Focal Image Index: ", current_target + start_num)
 
             ground_truth(outputs[max_index]['bbox'][:2],
                          outputs[max_index]['bbox'][2:])
