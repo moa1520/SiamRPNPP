@@ -12,6 +12,10 @@ from tracker import build_tracker
 parser = argparse.ArgumentParser(description="tracking demo")
 parser.add_argument('--video_name', default='', type=str,
                     help='videos or image files')
+parser.add_argument('--type', default='2D', type=str,
+                    help='2D video or 3D video')
+parser.add_argument('--img2d_ref', default='images/005.png',
+                    type=str, help='Main image root')
 parser.add_argument('--gt_on', default=True, type=bool, help='Estimate IoU')
 parser.add_argument('--record', default=True, type=bool,
                     help='Save images and IoU accuracy')
@@ -50,14 +54,13 @@ def main():
     tracker = build_tracker(model)
 
     first_frame = True
-    root = args.video_name
-    video_name = root.split('/')[-1].split('.')[0]
+    video_name = args.video_name.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
     frame_num = 0
     first_time = True
     current_target = -1
-    for frame, focal in get_frames(root, start_num, last_num):
+    for frame, focal in get_frames(args.video_name, args.type, args.img2d_ref, start_num, last_num):
         frame_num += 1
         if first_frame:
             try:
@@ -69,45 +72,32 @@ def main():
         else:
             max_index = -1
             max_val = 0
-            outputs = [tracker.track(cv2.imread(f)) for f in focal]
+            if first_time:
+                outputs = [tracker.track(cv2.imread(f)) for f in focal]
 
-            for i in range(len(outputs)):
-                if outputs[i]['best_score'] >= max_val:
-                    max_val = outputs[i]['best_score']
-                    max_index = i
-            current_target = max_index
+                for i in range(len(outputs)):
+                    if outputs[i]['best_score'] >= max_val:
+                        max_val = outputs[i]['best_score']
+                        max_index = i
+                first_time = False
+                current_target = max_index
+            else:
+                outputs = [tracker.track(cv2.imread(focal[i])) for i in range(
+                    current_target - 3, current_target + 3)]
 
-            ##########################################
-            # max_index = -1
-            # max_val = 0
-            # if first_time:
-            #     outputs = [tracker.track(cv2.imread(f)) for f in focal]
+                for i in range(len(outputs)):
+                    if outputs[i]['best_score'] >= max_val:
+                        max_val = outputs[i]['best_score']
+                        max_index = i
+                if max_index > 3:
+                    current_target = current_target + abs(3 - max_index)
+                elif max_index < 3:
+                    current_target = current_target - abs(3 - max_index)
 
-            #     for i in range(len(outputs)):
-            #         if outputs[i]['best_score'] >= max_val:
-            #             max_val = outputs[i]['best_score']
-            #             max_index = i
-            #     first_time = False
-            #     current_target = max_index
-            # else:
-            #     outputs = [tracker.track(cv2.imread(focal[i])) for i in range(
-            #         current_target - 3, current_target + 3)]
+            print("Focal Image Index: ", current_target + start_num)
 
-            #     for i in range(len(outputs)):
-            #         if outputs[i]['best_score'] >= max_val:
-            #             max_val = outputs[i]['best_score']
-            #             max_index = i
-            #     if max_index > 3:
-            #         current_target = current_target + abs(3 - max_index)
-            #     elif max_index < 3:
-            #         current_target = current_target - abs(3 - max_index)
-
-            # print("Focal Image Index: ", current_target + start_num)
-
-            # ground_truth(outputs[max_index]['bbox'][:2],
-            #              outputs[max_index]['bbox'][2:])
-
-            #######################################################################
+            ground_truth(outputs[max_index]['bbox'][:2],
+                         outputs[max_index]['bbox'][2:])
 
             bbox = list(map(int, outputs[max_index]['bbox']))
 
@@ -146,13 +136,6 @@ def main():
                                bbox_label[1]+bbox_label[3]),
                               (255, 255, 255), 3)
 
-                # cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
-
-            # cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
-            # cv2.putText(frame, "frame: " + str(frame_num), (30, 60),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
             cv2.imshow(video_name, frame)
 
             if record:
