@@ -12,7 +12,7 @@ from tracker import build_tracker
 parser = argparse.ArgumentParser(description="tracking demo")
 parser.add_argument('--video_name', default='', type=str,
                     help='videos or image files')
-parser.add_argument('--gt_on', default=False, type=bool, help='Estimate IoU')
+parser.add_argument('--gt_on', default=True, type=bool, help='Estimate IoU')
 parser.add_argument('--start_num', default=20, type=int,
                     help='First focal image number')
 parser.add_argument('--last_num', default=50, type=int,
@@ -49,7 +49,9 @@ def main():
     video_name = root.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
+    frame_num = 0
     for frame in get_frames(root, start_num, last_num):
+        frame_num += 1
         if first_frame:
             try:
                 init_rect = cv2.selectROI(video_name, frame, False, False)
@@ -67,25 +69,44 @@ def main():
                 bbox_label = line.split(',')
                 bbox_label = list(map(int, bbox_label))
 
+                labelx = bbox_label[0] + (bbox_label[2] / 2)
+                labely = bbox_label[1] + (bbox_label[3] / 2)
+
                 iou = IOU(bbox, bbox_label)
+                pre = ((outputs['cx'] - labelx)**2 +
+                       (outputs['cy'] - labely)**2) ** 0.5
 
                 result_iou = open('ground_truth/result_iou.txt', 'a')
                 result_iou.write(str(iou) + ',')
                 result_iou.close()
 
-                cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
-                              (bbox_label[0]+bbox_label[2],
-                               bbox_label[1]+bbox_label[3]),
-                              (0, 0, 255), 3)
-                cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+                result_pre = open('ground_truth/result_pre.txt', 'a')
+                result_pre.write(str(pre) + ',')
+                result_pre.close()
+
+                # cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
+                #               (bbox_label[0]+bbox_label[2],
+                #                bbox_label[1]+bbox_label[3]),
+                #               (255, 255, 255), 3)
+
+                # cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
             #### ----------------- ####
 
             cv2.rectangle(frame, (bbox[0], bbox[1]),
                           (bbox[0]+bbox[2], bbox[1]+bbox[3]),
-                          (0, 255, 0), 3)
+                          (0, 0, 255), 3)
             cv2.imshow(video_name, frame)
+            save_image(frame_num, frame)
             cv2.waitKey(40)
+
+
+def save_image(frame_num, frame):
+    '''output 이미지 저장'''
+    save_path = os.path.join(
+        'data/result', '{:03d}.jpg'.format(frame_num))
+    cv2.imwrite(save_path, frame)
+    ''''''
 
 
 if __name__ == "__main__":

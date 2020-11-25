@@ -228,7 +228,9 @@ class SiamRPNTracker(SiameseTracker):
 
         return {
             'bbox': bbox,
-            'best_score': best_score
+            'best_score': best_score,
+            'cx': cx,
+            'cy': cy
         }
 
 

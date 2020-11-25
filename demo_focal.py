@@ -50,7 +50,7 @@ def main():
     tracker = build_tracker(model)
 
     first_frame = True
-    root = "test"
+    root = args.video_name
     video_name = root.split('/')[-1].split('.')[0]
     cv2.namedWindow(video_name, cv2.WND_PROP_FULLSCREEN)
 
@@ -67,49 +67,56 @@ def main():
             tracker.init(frame, init_rect)
             first_frame = False
         else:
-            # max_index = -1
-            # max_val = 0
-            # outputs = [tracker.track(cv2.imread(f)) for f in focal]
-
-            # for i in range(len(outputs)):
-            #     if outputs[i]['best_score'] >= max_val:
-            #         max_val = outputs[i]['best_score']
-            #         max_index = i
-            # current_target = max_index
-
-            ###########################################
             max_index = -1
             max_val = 0
-            if first_time:
-                outputs = [tracker.track(cv2.imread(f)) for f in focal]
+            outputs = [tracker.track(cv2.imread(f)) for f in focal]
 
-                for i in range(len(outputs)):
-                    if outputs[i]['best_score'] >= max_val:
-                        max_val = outputs[i]['best_score']
-                        max_index = i
-                first_time = False
-                current_target = max_index
-            else:
-                outputs = [tracker.track(cv2.imread(focal[i])) for i in range(
-                    current_target - 3, current_target + 3)]
+            for i in range(len(outputs)):
+                if outputs[i]['best_score'] >= max_val:
+                    max_val = outputs[i]['best_score']
+                    max_index = i
+            current_target = max_index
 
-                for i in range(len(outputs)):
-                    if outputs[i]['best_score'] >= max_val:
-                        max_val = outputs[i]['best_score']
-                        max_index = i
-                if max_index > 3:
-                    current_target = current_target + abs(3 - max_index)
-                elif max_index < 3:
-                    current_target = current_target - abs(3 - max_index)
+            ##########################################
+            # max_index = -1
+            # max_val = 0
+            # if first_time:
+            #     outputs = [tracker.track(cv2.imread(f)) for f in focal]
 
-            print("Focal Image Index: ", current_target + start_num)
+            #     for i in range(len(outputs)):
+            #         if outputs[i]['best_score'] >= max_val:
+            #             max_val = outputs[i]['best_score']
+            #             max_index = i
+            #     first_time = False
+            #     current_target = max_index
+            # else:
+            #     outputs = [tracker.track(cv2.imread(focal[i])) for i in range(
+            #         current_target - 3, current_target + 3)]
 
-            ground_truth(outputs[max_index]['bbox'][:2],
-                         outputs[max_index]['bbox'][2:])
+            #     for i in range(len(outputs)):
+            #         if outputs[i]['best_score'] >= max_val:
+            #             max_val = outputs[i]['best_score']
+            #             max_index = i
+            #     if max_index > 3:
+            #         current_target = current_target + abs(3 - max_index)
+            #     elif max_index < 3:
+            #         current_target = current_target - abs(3 - max_index)
 
-            ########################################################################
+            # print("Focal Image Index: ", current_target + start_num)
+
+            # ground_truth(outputs[max_index]['bbox'][:2],
+            #              outputs[max_index]['bbox'][2:])
+
+            #######################################################################
 
             bbox = list(map(int, outputs[max_index]['bbox']))
+
+            cv2.rectangle(frame, (bbox[0], bbox[1]),
+                          (bbox[0]+bbox[2], bbox[1]+bbox[3]),
+                          (0, 0, 255), 3)
+            save_path = os.path.join(
+                'data/result2', '{:03d}.jpg'.format(frame_num))
+            cv2.imwrite(save_path, frame)
 
             # ground truth
             if gt_on:
@@ -119,24 +126,33 @@ def main():
 
                 iou = IOU(bbox, bbox_label)
 
+                labelx = bbox_label[0] + (bbox_label[2] / 2)
+                labely = bbox_label[1] + (bbox_label[3] / 2)
+
+                pre = ((outputs[max_index]['cx'] - labelx)**2 +
+                       (outputs[max_index]['cy'] - labely)**2) ** 0.5
+
                 if record:
                     result_iou = open('ground_truth/result_iou.txt', 'a')
                     result_iou.write(str(iou) + ',')
                     result_iou.close()
+
+                    result_pre = open('ground_truth/result_pre.txt', 'a')
+                    result_pre.write(str(pre) + ',')
+                    result_pre.close()
+
                 cv2.rectangle(frame, (bbox_label[0], bbox_label[1]),
                               (bbox_label[0]+bbox_label[2],
                                bbox_label[1]+bbox_label[3]),
-                              (0, 0, 255), 3)
-                cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+                              (255, 255, 255), 3)
 
-            cv2.rectangle(frame, (bbox[0], bbox[1]),
-                          (bbox[0]+bbox[2], bbox[1]+bbox[3]),
-                          (0, 255, 0), 3)
-            cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
-            cv2.putText(frame, "frame: " + str(frame_num), (30, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
+                # cv2.putText(frame, "IoU: " + str(round(iou, 4) * 100) + "%", (30, 120),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+
+            # cv2.putText(frame, "focal: " + str(current_target + start_num), (30, 30),
+            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255))
+            # cv2.putText(frame, "frame: " + str(frame_num), (30, 60),
+            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
             cv2.imshow(video_name, frame)
 
             if record:
